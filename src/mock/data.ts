@@ -1,4 +1,4 @@
-import type { Project, TimeSlot, Insurance, Order, Announcement, Review, ReportOverview, HeatmapData, RevenueData, ProjectRevenue, QueueInfo } from '../../shared/types';
+import type { Project, TimeSlot, Insurance, Order, Announcement, Review, ReportOverview, HeatmapData, RevenueData, ProjectRevenue, QueueInfo, PaymentRecord, RefundRecord, WaitlistItem, Complaint } from '../../shared/types';
 
 export const projects: Project[] = [
   {
@@ -26,6 +26,7 @@ export const projects: Project[] = [
     ],
     features: ['专业飞行员', '全景玻璃窗', '语音讲解', '免费保险'],
     route: '景区机场 → 主峰观景台 → 天池 → 古镇 → 返回机场',
+    status: 'active',
   },
   {
     id: 'p2',
@@ -52,6 +53,7 @@ export const projects: Project[] = [
     ],
     features: ['日出体验', '香槟庆祝', '飞行证书', '专业摄影'],
     route: '起飞点 → 山谷草原 → 森林上空 → 湖泊 → 预定降落点',
+    status: 'active',
   },
   {
     id: 'p3',
@@ -78,6 +80,7 @@ export const projects: Project[] = [
     ],
     features: ['VR第一视角', '专业教练', '多种赛道', '视频录制'],
     route: '训练场 → 森林赛道 → 湖面上空 → 特技表演区',
+    status: 'active',
   },
   {
     id: 'p4',
@@ -104,6 +107,7 @@ export const projects: Project[] = [
     ],
     features: ['定制装饰', '专业航拍', '红毯服务', '香槟庆祝'],
     route: '可根据需求定制飞行路线',
+    status: 'active',
   },
   {
     id: 'p5',
@@ -130,6 +134,7 @@ export const projects: Project[] = [
     ],
     features: ['法式晚宴', '红酒香槟', '浪漫音乐', '专属服务'],
     route: '城市上空 → 日落观景点 → 河畔 → 返回起飞点',
+    status: 'active',
   },
   {
     id: 'p6',
@@ -156,6 +161,7 @@ export const projects: Project[] = [
     ],
     features: ['4K高清', '专业飞手', '后期精修', '即刻交付'],
     route: '根据拍摄需求定制飞行范围',
+    status: 'active',
   },
 ];
 
@@ -420,3 +426,95 @@ export const queueInfo: QueueInfo = {
   waitingCount: 8,
   estimatedWaitTime: 25,
 };
+
+export const paymentRecords: PaymentRecord[] = [
+  {
+    id: 'pay1',
+    orderId: 'o1',
+    amount: 2760,
+    paymentMethod: '微信支付',
+    status: 'success',
+    transactionId: 'WX202401151035001234',
+    createTime: '2024-01-15T10:35:00Z',
+  },
+  {
+    id: 'pay2',
+    orderId: 'o2',
+    amount: 1000,
+    paymentMethod: '支付宝',
+    status: 'success',
+    transactionId: 'ALI202401140805005678',
+    createTime: '2024-01-14T08:05:00Z',
+  },
+  {
+    id: 'pay3',
+    orderId: 'o4',
+    amount: 5360,
+    paymentMethod: '微信支付',
+    status: 'success',
+    transactionId: 'WX202401122005009012',
+    createTime: '2024-01-12T20:05:00Z',
+  },
+];
+
+export const refundRecords: RefundRecord[] = [
+  {
+    id: 'ref1',
+    orderId: 'o4',
+    amount: 4824,
+    reason: '用户个人原因取消',
+    status: 'completed',
+    createTime: '2024-01-13T09:00:00Z',
+    completeTime: '2024-01-13T10:30:00Z',
+  },
+];
+
+export const waitlistItems: WaitlistItem[] = [
+  {
+    id: 'w1',
+    orderId: 'o-wait1',
+    projectId: 'p1',
+    slotId: 'p1-2024-01-20-2',
+    position: 1,
+    createTime: '2024-01-16T10:00:00Z',
+    status: 'waiting',
+  },
+  {
+    id: 'w2',
+    orderId: 'o-wait2',
+    projectId: 'p1',
+    slotId: 'p1-2024-01-20-2',
+    position: 2,
+    createTime: '2024-01-16T11:00:00Z',
+    status: 'waiting',
+  },
+];
+
+export const complaints: Complaint[] = [
+  {
+    id: 'c1',
+    orderId: 'o1',
+    projectId: 'p1',
+    userId: 'u1',
+    userName: '张三',
+    type: '服务态度',
+    content: '现场工作人员态度不够热情，希望能够改进。',
+    images: [],
+    status: 'resolved',
+    handleOpinion: '非常抱歉给您带来不好的体验，我们已对相关工作人员进行了培训，感谢您的反馈。',
+    handleTime: '2024-01-21T10:00:00Z',
+    createTime: '2024-01-20T18:00:00Z',
+  },
+  {
+    id: 'c2',
+    orderId: 'o2',
+    projectId: 'p2',
+    userId: 'u2',
+    userName: '王五',
+    type: '飞行时间',
+    content: '实际飞行时间比宣传的短，感觉有点不值。',
+    images: [],
+    status: 'processing',
+    createTime: '2024-01-19T14:00:00Z',
+  },
+];

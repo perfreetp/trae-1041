@@ -58,10 +58,11 @@ export default function Home() {
     const matchSearch = !searchQuery || 
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCategory && matchSearch;
+    const matchStatus = project.status === 'active';
+    return matchCategory && matchSearch && matchStatus;
   });
 
-  const recommendedProjects = projects.slice(0, 3);
+  const recommendedProjects = projects.filter(p => p.status === 'active').slice(0, 3);
   const topAnnouncements = announcements.filter(a => a.isTop).slice(0, 3);
 
   return (

@@ -68,11 +68,25 @@ export default function Navbar() {
               {isAdminMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2 animate-fade-in z-50">
                   <Link
+                    to="/admin/projects"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsAdminMenuOpen(false)}
+                  >
+                    项目管理
+                  </Link>
+                  <Link
                     to="/admin/announcements"
                     className="block px-4 py-2 text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
                     onClick={() => setIsAdminMenuOpen(false)}
                   >
                     公告管理
+                  </Link>
+                  <Link
+                    to="/admin/complaints"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsAdminMenuOpen(false)}
+                  >
+                    投诉处理
                   </Link>
                   <Link
                     to="/admin/reviews"
@@ -128,8 +142,14 @@ export default function Navbar() {
               <Link to="/checkin" className="block py-2 text-gray-600 hover:text-primary-500">
                 现场核验
               </Link>
+              <Link to="/admin/projects" className="block py-2 text-gray-600 hover:text-primary-500">
+                项目管理
+              </Link>
               <Link to="/admin/announcements" className="block py-2 text-gray-600 hover:text-primary-500">
                 公告管理
+              </Link>
+              <Link to="/admin/complaints" className="block py-2 text-gray-600 hover:text-primary-500">
+                投诉处理
               </Link>
               <Link to="/admin/reviews" className="block py-2 text-gray-600 hover:text-primary-500">
                 评价中心

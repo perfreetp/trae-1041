@@ -3,20 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Star, Clock, Users, Shield, MapPin, Calendar, Clock as ClockIcon,
   ChevronLeft, ChevronRight, Check, AlertCircle, User, Phone, IdCard,
-  Plus, Minus, Info
+  Plus, Minus, Info, AlertTriangle, ListPlus, X
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import type { Passenger, TimeSlot } from '../../shared/types';
+import type { Passenger, TimeSlot, Order } from '../../shared/types';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { projects, timeSlots, insurances, createOrder } = useAppStore();
+  const { 
+    projects, timeSlots, insurances, createOrder, 
+    isSlotCancelled, getAvailableSlots, addToWaitlist,
+    waitlistItems
+  } = useAppStore();
   
   const project = projects.find(p => p.id === id);
-  const projectSlots = timeSlots.filter(s => s.projectId === id);
+  const projectSlots = getAvailableSlots(id || '', '');
   
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
@@ -28,8 +32,12 @@ export default function ProjectDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('details');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [selectedWaitlistSlot, setSelectedWaitlistSlot] = useState<TimeSlot | null>(null);
+  const [createOrderResult, setCreateOrderResult] = useState<Order | null>(null);
 
-  const uniqueDates = [...new Set(projectSlots.map(s => s.date))].sort().slice(0, 7);
+  const allProjectSlots = timeSlots.filter(s => s.projectId === id);
+  const uniqueDates = [...new Set(allProjectSlots.map(s => s.date))].sort().slice(0, 7);
   
   useEffect(() => {
     if (uniqueDates.length > 0 && !selectedDate) {
@@ -37,7 +45,39 @@ export default function ProjectDetail() {
     }
   }, [uniqueDates, selectedDate]);
 
-  const dateSlots = projectSlots.filter(s => s.date === selectedDate);
+  const dateSlots = allProjectSlots.filter(s => s.date === selectedDate).map(slot => {
+    const isCancelled = isSlotCancelled(id || '', slot.date, slot.startTime);
+    return { ...slot, isCancelled };
+  });
+
+  const isSlotAvailable = (slot: TimeSlot & { isCancelled?: boolean }) => {
+    return !slot.isCancelled && slot.availableStock > 0;
+  };
+
+  const handleWaitlist = () => {
+    if (selectedWaitlistSlot && project) {
+      const tempOrder = createOrder({
+        projectId: project.id,
+        projectName: project.name,
+        projectType: project.type,
+        slotId: selectedWaitlistSlot.id,
+        slotDate: selectedWaitlistSlot.date,
+        slotTime: `${selectedWaitlistSlot.startTime}-${selectedWaitlistSlot.endTime}`,
+        passengers: passengers,
+        insuranceIds: selectedInsurances,
+        totalAmount: totalPrice,
+      });
+      
+      if (tempOrder) {
+        addToWaitlist(tempOrder.id, project.id, selectedWaitlistSlot.id);
+        setShowWaitlistModal(false);
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigate('/orders');
+        }, 2000);
+      }
+    }
+  };
 
   const totalPrice = passengers.reduce((sum, _, idx) => {
     return sum + (selectedSlot?.price || 0);
@@ -105,7 +145,7 @@ export default function ProjectDetail() {
     }
     if (!project) return;
 
-    createOrder({
+    const result = createOrder({
       projectId: project.id,
       projectName: project.name,
       projectType: project.type,
@@ -117,10 +157,14 @@ export default function ProjectDetail() {
       totalAmount: totalPrice,
     });
 
-    setShowSuccess(true);
-    setTimeout(() => {
-      navigate('/orders');
-    }, 2000);
+    if (result) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/orders');
+      }, 2000);
+    } else {
+      alert('该时段库存不足，请选择其他时段或加入候补');
+    }
   };
 
   if (!project) {
@@ -129,6 +173,26 @@ export default function ProjectDetail() {
         <Navbar />
         <div className="container mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">项目不存在</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (project.status === 'inactive') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <AlertTriangle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">该项目已下架</h2>
+          <p className="text-gray-500 mb-6">抱歉，该项目暂时无法预订</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            返回首页
+          </button>
         </div>
         <Footer />
       </div>
@@ -346,27 +410,67 @@ export default function ProjectDetail() {
                     <ClockIcon className="w-4 h-4 inline mr-1" />
                     选择时段
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-2">
                     {dateSlots.map((slot) => (
-                      <button
+                      <div
                         key={slot.id}
-                        onClick={() => slot.status !== 'soldout' && setSelectedSlot(slot)}
-                        disabled={slot.status === 'soldout'}
-                        className={`p-3 rounded-lg text-center text-sm transition-colors ${
-                          selectedSlot?.id === slot.id
-                            ? 'bg-primary-500 text-white'
-                            : slot.status === 'soldout'
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through'
-                            : slot.status === 'limited'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                            : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        className={`p-3 rounded-lg transition-colors ${
+                          slot.isCancelled
+                            ? 'bg-red-50 border border-red-200'
+                            : slot.availableStock === 0
+                            ? 'bg-gray-50 border border-gray-200'
+                            : selectedSlot?.id === slot.id
+                            ? 'bg-primary-50 border-2 border-primary-500'
+                            : 'bg-gray-50 border border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <div className="font-medium">{slot.startTime}</div>
-                        <div className="text-xs">
-                          {slot.status === 'soldout' ? '已满' : `¥${slot.price}`}
+                        <div className="flex items-center justify-between">
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => !slot.isCancelled && slot.availableStock > 0 && setSelectedSlot(slot)}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <span className="font-medium text-gray-800">
+                                {slot.startTime} - {slot.endTime}
+                              </span>
+                              <span className="text-accent-600 font-medium">¥{slot.price}</span>
+                              {slot.isCancelled && (
+                                <span className="flex items-center space-x-1 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>天气停飞</span>
+                                </span>
+                              )}
+                              {!slot.isCancelled && slot.availableStock === 0 && (
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                  已满
+                                </span>
+                              )}
+                              {!slot.isCancelled && slot.availableStock > 0 && slot.availableStock <= 2 && (
+                                <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                                  仅剩{slot.availableStock}座
+                                </span>
+                              )}
+                              {!slot.isCancelled && slot.availableStock > 2 && (
+                                <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                                  剩余{slot.availableStock}座
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {!slot.isCancelled && slot.availableStock === 0 && (
+                            <button
+                              onClick={() => {
+                                setSelectedWaitlistSlot(slot);
+                                setShowWaitlistModal(true);
+                              }}
+                              className="flex items-center space-x-1 px-3 py-1.5 bg-purple-100 text-purple-700 text-sm rounded-lg hover:bg-purple-200 transition-colors"
+                            >
+                              <ListPlus className="w-4 h-4" />
+                              <span>候补</span>
+                            </button>
+                          )}
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -525,6 +629,60 @@ export default function ProjectDetail() {
           </div>
         </div>
       </div>
+
+      {/* 候补弹窗 */}
+      {showWaitlistModal && selectedWaitlistSlot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800">加入候补队列</h2>
+              <button onClick={() => setShowWaitlistModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center space-x-2 text-purple-700 mb-2">
+                  <ListPlus className="w-5 h-5" />
+                  <span className="font-medium">候补说明</span>
+                </div>
+                <p className="text-sm text-purple-600">
+                  加入候补后，如有其他乘客退票，我们将按顺序为您安排。
+                  候补成功后订单将自动转为待支付状态，请及时支付。
+                </p>
+              </div>
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-2">候补时段</p>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{selectedWaitlistSlot.date}</p>
+                    <p className="text-sm text-gray-500">{selectedWaitlistSlot.startTime} - {selectedWaitlistSlot.endTime}</p>
+                  </div>
+                  <span className="text-accent-600 font-medium">¥{selectedWaitlistSlot.price}</span>
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowWaitlistModal(false)}
+                  className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleWaitlist}
+                  disabled={!agreedToTerms}
+                  className="flex-1 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  确认候补
+                </button>
+              </div>
+              {!agreedToTerms && (
+                <p className="text-xs text-red-500 mt-2 text-center">请先阅读并同意乘客须知</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

@@ -1,4 +1,5 @@
 export type ProjectType = 'helicopter' | 'balloon' | 'drone';
+export type ProjectStatus = 'active' | 'inactive';
 
 export interface Project {
   id: string;
@@ -17,6 +18,7 @@ export interface Project {
   safetyNotes: string[];
   features: string[];
   route: string;
+  status: ProjectStatus;
 }
 
 export interface TimeSlot {
@@ -46,7 +48,54 @@ export interface Insurance {
   coverage: string;
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'waiting' | 'boarding' | 'completed' | 'cancelled' | 'refunded';
+export type OrderStatus = 'pending' | 'paid' | 'waiting' | 'boarding' | 'completed' | 'cancelled' | 'refunded' | 'flightCancelled' | 'waitlisted';
+
+export interface PaymentRecord {
+  id: string;
+  orderId: string;
+  amount: number;
+  paymentMethod: string;
+  status: 'success' | 'failed' | 'pending';
+  transactionId: string;
+  createTime: string;
+}
+
+export interface RefundRecord {
+  id: string;
+  orderId: string;
+  amount: number;
+  reason: string;
+  status: 'processing' | 'completed' | 'rejected';
+  createTime: string;
+  completeTime?: string;
+}
+
+export interface WaitlistItem {
+  id: string;
+  orderId: string;
+  projectId: string;
+  slotId: string;
+  position: number;
+  createTime: string;
+  status: 'waiting' | 'converted' | 'cancelled';
+}
+
+export type ComplaintStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
+
+export interface Complaint {
+  id: string;
+  orderId: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  type: string;
+  content: string;
+  images: string[];
+  status: ComplaintStatus;
+  handleOpinion?: string;
+  handleTime?: string;
+  createTime: string;
+}
 
 export interface Order {
   id: string;
@@ -65,6 +114,8 @@ export interface Order {
   payTime?: string;
   queueNumber?: number;
   refundAmount?: number;
+  hasWatchedVideo?: boolean;
+  isCheckedIn?: boolean;
 }
 
 export interface QueueInfo {
