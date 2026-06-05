@@ -43,7 +43,8 @@ export default function Orders() {
   const navigate = useNavigate();
   const { 
     orders, timeSlots, cancelOrder, payOrder, rescheduleOrder, 
-    addToWaitlist, waitlistItems, addComplaint, paymentRecords, refundRecords
+    addToWaitlist, waitlistItems, addComplaint, paymentRecords, refundRecords,
+    isSlotCancelled
   } = useAppStore();
   
   const [activeTab, setActiveTab] = useState<OrderStatus | 'all'>('all');
@@ -80,7 +81,8 @@ export default function Orders() {
       s.projectId === order.projectId && 
       s.availableStock > 0 && 
       s.id !== order.slotId &&
-      new Date(s.date) >= new Date()
+      new Date(s.date) >= new Date() &&
+      !isSlotCancelled(order.projectId, s.date, s.startTime)
     );
   };
 

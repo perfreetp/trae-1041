@@ -353,27 +353,35 @@ export const useAppStore = create<AppState>()(
         const slot = get().timeSlots.find(s => s.id === slotId);
         
         if (slot && slot.availableStock > 0) {
-          set((state) => ({
-            waitlistItems: state.waitlistItems.map((w, idx) =>
-              w.id === firstInLine.id 
-                ? { ...w, status: 'converted' as const }
-                : w.slotId === slotId && w.status === 'waiting'
-                ? { ...w, position: idx }
-                : w
-            ),
-            orders: state.orders.map((o) =>
-              o.id === firstInLine.orderId ? { ...o, status: 'pending' as const } : o
-            ),
-            timeSlots: state.timeSlots.map((s) =>
-              s.id === slotId
-                ? {
-                    ...s,
-                    availableStock: s.availableStock - 1,
-                    status: s.availableStock - 1 === 0 ? 'soldout' : s.availableStock - 1 <= 2 ? 'limited' : 'available',
+          set((state) => {
+            const remainingWaitlist = waitlist.slice(1);
+            return {
+              waitlistItems: state.waitlistItems.map((w) => {
+                if (w.id === firstInLine.id) {
+                  return { ...w, status: 'converted' as const };
+                }
+                if (w.slotId === slotId && w.status === 'waiting') {
+                  const newIdx = remainingWaitlist.findIndex(rw => rw.id === w.id);
+                  if (newIdx !== -1) {
+                    return { ...w, position: newIdx + 1 };
                   }
-                : s
-            ),
-          }));
+                }
+                return w;
+              }),
+              orders: state.orders.map((o) =>
+                o.id === firstInLine.orderId ? { ...o, status: 'pending' as const } : o
+              ),
+              timeSlots: state.timeSlots.map((s) =>
+                s.id === slotId
+                  ? {
+                      ...s,
+                      availableStock: s.availableStock - 1,
+                      status: s.availableStock - 1 === 0 ? 'soldout' : s.availableStock - 1 <= 2 ? 'limited' : 'available',
+                    }
+                  : s
+              ),
+            };
+          });
         }
       },
 
@@ -444,13 +452,47 @@ export const useAppStore = create<AppState>()(
         return true;
       },
 
-      callNextNumber: () => {
+      canCallNumber: (orderId: string) => {
+        const order = get().orders.find(o => o.id === orderId);
+        if (!order) return { canCall: false, reason: '订单不存在' };
+        if (order.status === 'pending') {
+          return { canCall: false, reason: '订单未支付，请先完成支付' };
+        }
+        if (order.status === 'refunded' || order.status === 'cancelled') {
+          return { canCall: false, reason: '订单已退票或取消' };
+        }
+        if (order.status === 'flightCancelled') {
+          return { canCall: false, reason: '航班已停飞，请办理改签或退票' };
+        }
+        if (order.status === 'waitlisted') {
+          return { canCall: false, reason: '订单正在候补中，请等待候补成功' };
+        }
+        if (!order.hasWatchedVideo) {
+          return { canCall: false, reason: '请先观看安全视频' };
+        }
+        if (order.isCheckedIn) {
+          return { canCall: false, reason: '已完成登机核验' };
+        }
+        if (order.status !== 'paid' && order.status !== 'waiting') {
+          return { canCall: false, reason: '订单状态异常' };
+        }
+        return { canCall: true };
+      },
+
+      callNextNumber: (orderId?: string) => {
         set((state) => ({
           queueInfo: {
             ...state.queueInfo,
             currentNumber: state.queueInfo.currentNumber + 1,
             waitingCount: Math.max(0, state.queueInfo.waitingCount - 1),
           },
+          orders: orderId 
+            ? state.orders.map((o) => 
+                o.id === orderId && o.status === 'paid'
+                  ? { ...o, status: 'waiting' as const, queueNumber: state.queueInfo.currentNumber + 1 }
+                  : o
+              )
+            : state.orders,
         }));
       },
 
@@ -475,7 +517,7 @@ export const useAppStore = create<AppState>()(
                 return o;
               }
               
-              if (announcementData.startTime && announcementData.endTime) {
+              if (announcementData.startTime) {
                 const orderStartTime = o.slotTime.split('-')[0];
                 if (orderStartTime !== announcementData.startTime) {
                   return o;

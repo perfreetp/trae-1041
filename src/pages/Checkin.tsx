@@ -14,8 +14,11 @@ export default function Checkin() {
   const navigate = useNavigate();
   const { 
     queueInfo, callNextNumber, orders, 
-    markVideoWatched, canCheckIn, checkInOrder 
+    markVideoWatched, canCheckIn, checkInOrder,
+    canCallNumber
   } = useAppStore();
+  
+  const [callResult, setCallResult] = useState<{ success: boolean; message: string } | null>(null);
   
   const [activeTab, setActiveTab] = useState<'queue' | 'verify' | 'video'>('queue');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -189,7 +192,7 @@ export default function Checkin() {
                   </div>
                   <p className="text-lg opacity-90 mb-8">请听到叫号后前往登机口</p>
                   
-                  {selectedOrder && selectedOrder.status === 'paid' && (
+                  {selectedOrder && (selectedOrder.status === 'paid' || selectedOrder.status === 'waiting') && (
                     <div className="mb-6 bg-white/10 rounded-lg p-4">
                       <p className="text-sm opacity-90">
                         您的排队号：<span className="font-bold text-2xl">{selectedOrder.queueNumber || '--'}</span> 号
@@ -197,13 +200,53 @@ export default function Checkin() {
                     </div>
                   )}
                   
+                  {selectedOrder && (
+                    <div className="mb-4 text-sm opacity-90">
+                      当前选择订单：{selectedOrder.orderNo}
+                    </div>
+                  )}
+                  
                   <button
-                    onClick={callNextNumber}
-                    className="flex items-center space-x-2 mx-auto px-8 py-4 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg"
+                    onClick={() => {
+                      if (selectedOrder) {
+                        const checkResult = canCallNumber(selectedOrder.id);
+                        if (checkResult.canCall) {
+                          callNextNumber(selectedOrder.id);
+                          setCallResult({
+                            success: true,
+                            message: `叫号成功！已叫号：${queueInfo.currentNumber + 1} 号`
+                          });
+                          setTimeout(() => setCallResult(null), 3000);
+                        } else {
+                          setCallResult({
+                            success: false,
+                            message: checkResult.reason || '无法叫号'
+                          });
+                          setTimeout(() => setCallResult(null), 5000);
+                        }
+                      } else {
+                        setCallResult({
+                          success: false,
+                          message: '请先选择订单'
+                        });
+                        setTimeout(() => setCallResult(null), 3000);
+                      }
+                    }}
+                    className="flex items-center space-x-2 mx-auto px-8 py-4 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg disabled:opacity-50"
                   >
                     <SkipForward className="w-5 h-5" />
                     <span>叫下一号</span>
                   </button>
+                  
+                  {callResult && (
+                    <div className={`mt-4 p-3 rounded-lg text-sm ${
+                      callResult.success 
+                        ? 'bg-green-500/20 text-green-100' 
+                        : 'bg-red-500/20 text-red-100'
+                    }`}>
+                      {callResult.message}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
