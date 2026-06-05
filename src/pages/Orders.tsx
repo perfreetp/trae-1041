@@ -17,18 +17,19 @@ const statusTabs: { id: OrderStatus | 'all'; label: string }[] = [
   { id: 'paid', label: '待出行' },
   { id: 'flightCancelled', label: '停飞待处理' },
   { id: 'waitlisted', label: '候补中' },
+  { id: 'boarding', label: '已核验' },
   { id: 'completed', label: '已完成' },
-  { id: 'refunded', label: '已退款' },
+  { id: 'refunded', label: '已退票' },
 ];
 
 const statusLabels: Record<OrderStatus, { text: string; color: string }> = {
   pending: { text: '待支付', color: 'bg-yellow-100 text-yellow-700' },
   paid: { text: '待出行', color: 'bg-blue-100 text-blue-700' },
-  waiting: { text: '等待中', color: 'bg-purple-100 text-purple-700' },
-  boarding: { text: '登机中', color: 'bg-green-100 text-green-700' },
+  waiting: { text: '叫号等待中', color: 'bg-purple-100 text-purple-700' },
+  boarding: { text: '已核验', color: 'bg-green-100 text-green-700' },
   completed: { text: '已完成', color: 'bg-gray-100 text-gray-700' },
   cancelled: { text: '已取消', color: 'bg-red-100 text-red-700' },
-  refunded: { text: '已退款', color: 'bg-orange-100 text-orange-700' },
+  refunded: { text: '已退票', color: 'bg-orange-100 text-orange-700' },
   flightCancelled: { text: '停飞待处理', color: 'bg-red-100 text-red-700' },
   waitlisted: { text: '候补中', color: 'bg-purple-100 text-purple-700' },
 };

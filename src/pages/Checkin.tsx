@@ -29,7 +29,10 @@ export default function Checkin() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderSelector, setShowOrderSelector] = useState(false);
 
-  const paidOrders = orders.filter(o => o.status === 'paid' || o.status === 'boarding');
+  const recentOrders = orders.filter(o => 
+    o.status === 'paid' || o.status === 'waiting' || o.status === 'boarding' || 
+    o.status === 'refunded' || o.status === 'cancelled' || o.status === 'flightCancelled'
+  ).slice(0, 10);
 
   useEffect(() => {
     if (isPlaying && videoProgress < 100) {
@@ -86,15 +89,34 @@ export default function Checkin() {
   };
 
   const getOrderStatusText = (order: Order) => {
+    if (order.status === 'refunded') return '已退票';
+    if (order.status === 'cancelled') return '已取消';
+    if (order.status === 'flightCancelled') return '停飞待处理';
+    if (order.status === 'pending') return '待支付';
+    if (order.status === 'waitlisted') return '候补中';
     if (order.isCheckedIn) return '已核验';
+    if (order.status === 'waiting') return '叫号等待中';
     if (order.hasWatchedVideo) return '已观看视频';
     return '待核验';
   };
 
   const getOrderStatusColor = (order: Order) => {
+    if (order.status === 'refunded' || order.status === 'cancelled') return 'text-orange-600 bg-orange-100';
+    if (order.status === 'flightCancelled') return 'text-red-600 bg-red-100';
+    if (order.status === 'pending') return 'text-yellow-600 bg-yellow-100';
     if (order.isCheckedIn) return 'text-green-600 bg-green-100';
+    if (order.status === 'waiting') return 'text-purple-600 bg-purple-100';
     if (order.hasWatchedVideo) return 'text-blue-600 bg-blue-100';
     return 'text-gray-600 bg-gray-100';
+  };
+
+  const isOrderEligible = (order: Order) => {
+    if (order.status === 'refunded' || order.status === 'cancelled') return false;
+    if (order.status === 'flightCancelled') return false;
+    if (order.status === 'pending') return false;
+    if (order.status === 'waitlisted') return false;
+    if (order.isCheckedIn) return false;
+    return order.status === 'paid' || order.status === 'waiting';
   };
 
   return (
@@ -479,54 +501,83 @@ export default function Checkin() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    快速选择（已支付订单）
+                    快速选择订单
                   </label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {paidOrders.length === 0 ? (
-                      <p className="text-center text-gray-500 py-4">暂无已支付订单</p>
+                    {recentOrders.length === 0 ? (
+                      <p className="text-center text-gray-500 py-4">暂无订单</p>
                     ) : (
-                      paidOrders.map((order) => (
-                        <button
-                          key={order.id}
-                          onClick={() => handleSelectOrder(order)}
-                          className={`w-full p-3 text-left rounded-lg transition-colors ${
-                            selectedOrder?.id === order.id
-                              ? 'bg-primary-50 border-2 border-primary-500'
-                              : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-gray-800">{order.orderNo}</div>
-                              <div className="text-sm text-gray-500">{order.projectName}</div>
-                              <div className="text-xs text-gray-400">{order.passengers[0].name}</div>
+                      recentOrders.map((order) => {
+                        const eligible = isOrderEligible(order);
+                        return (
+                          <button
+                            key={order.id}
+                            onClick={() => eligible && handleSelectOrder(order)}
+                            disabled={!eligible}
+                            className={`w-full p-3 text-left rounded-lg transition-colors ${
+                              !eligible
+                                ? 'bg-gray-100 opacity-60 cursor-not-allowed border-2 border-transparent'
+                                : selectedOrder?.id === order.id
+                                ? 'bg-primary-50 border-2 border-primary-500'
+                                : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className={`font-medium ${eligible ? 'text-gray-800' : 'text-gray-500'}`}>
+                                  {order.orderNo}
+                                </div>
+                                <div className="text-sm text-gray-500">{order.projectName}</div>
+                                <div className="text-xs text-gray-400">{order.passengers[0].name}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order)}`}>
+                                {getOrderStatusText(order)}
+                              </span>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order)}`}>
-                              {getOrderStatusText(order)}
-                            </span>
-                          </div>
-                        </button>
-                      ))
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </div>
 
                 {selectedOrder && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-800 mb-2">核验前检查</h4>
+                  <div className={`border rounded-lg p-4 ${
+                    isOrderEligible(selectedOrder) 
+                      ? 'bg-blue-50 border-blue-200' 
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <h4 className={`font-medium mb-2 ${
+                      isOrderEligible(selectedOrder) ? 'text-blue-800' : 'text-red-800'
+                    }`}>
+                      {isOrderEligible(selectedOrder) ? '核验前检查' : '订单不可核验'}
+                    </h4>
                     <ul className="space-y-2">
                       <li className="flex items-center space-x-2">
-                        {selectedOrder.status === 'paid' || selectedOrder.status === 'boarding' ? (
+                        {selectedOrder.status === 'paid' || selectedOrder.status === 'waiting' || selectedOrder.status === 'boarding' ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <AlertCircle className="w-4 h-4 text-red-600" />
                         )}
                         <span className={`text-sm ${
-                          selectedOrder.status === 'paid' || selectedOrder.status === 'boarding'
+                          selectedOrder.status === 'paid' || selectedOrder.status === 'waiting' || selectedOrder.status === 'boarding'
                             ? 'text-green-700'
                             : 'text-red-700'
                         }`}>
-                          订单状态：{selectedOrder.status === 'paid' || selectedOrder.status === 'boarding' ? '已支付 ✓' : '未支付 ✗'}
+                          订单状态：
+                          {selectedOrder.status === 'paid' || selectedOrder.status === 'waiting' || selectedOrder.status === 'boarding'
+                            ? '正常 ✓'
+                            : selectedOrder.status === 'refunded'
+                            ? '已退票 ✗'
+                            : selectedOrder.status === 'cancelled'
+                            ? '已取消 ✗'
+                            : selectedOrder.status === 'flightCancelled'
+                            ? '停飞待处理 ✗'
+                            : selectedOrder.status === 'pending'
+                            ? '待支付 ✗'
+                            : selectedOrder.status === 'waitlisted'
+                            ? '候补中 ✗'
+                            : '异常 ✗'}
                         </span>
                       </li>
                       <li className="flex items-center space-x-2">
@@ -610,32 +661,40 @@ export default function Checkin() {
             </div>
             <div className="p-6 overflow-y-auto flex-1">
               <div className="space-y-3">
-                {paidOrders.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">暂无已支付订单</p>
+                {recentOrders.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">暂无订单</p>
                 ) : (
-                  paidOrders.map((order) => (
-                    <button
-                      key={order.id}
-                      onClick={() => handleSelectOrder(order)}
-                      className={`w-full p-4 text-left rounded-xl border-2 transition-all ${
-                        selectedOrder?.id === order.id
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-800">{order.projectName}</p>
-                          <p className="text-sm text-gray-500 mt-1">订单号：{order.orderNo}</p>
-                          <p className="text-sm text-gray-500">乘客：{order.passengers[0].name}</p>
-                          <p className="text-sm text-gray-500">时段：{order.slotDate} {order.slotTime}</p>
+                  recentOrders.map((order) => {
+                    const eligible = isOrderEligible(order);
+                    return (
+                      <button
+                        key={order.id}
+                        onClick={() => eligible && handleSelectOrder(order)}
+                        disabled={!eligible}
+                        className={`w-full p-4 text-left rounded-xl border-2 transition-all ${
+                          !eligible
+                            ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                            : selectedOrder?.id === order.id
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className={`font-semibold ${eligible ? 'text-gray-800' : 'text-gray-500'}`}>
+                              {order.projectName}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">订单号：{order.orderNo}</p>
+                            <p className="text-sm text-gray-500">乘客：{order.passengers[0].name}</p>
+                            <p className="text-sm text-gray-500">时段：{order.slotDate} {order.slotTime}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order)}`}>
+                            {getOrderStatusText(order)}
+                          </span>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order)}`}>
-                          {getOrderStatusText(order)}
-                        </span>
-                      </div>
-                    </button>
-                  ))
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
