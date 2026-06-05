@@ -134,6 +134,9 @@ export interface Announcement {
   isTop: boolean;
   createTime: string;
   projectId?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface Review {

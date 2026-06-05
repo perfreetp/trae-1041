@@ -75,6 +75,13 @@ export default function Navbar() {
                     项目管理
                   </Link>
                   <Link
+                    to="/admin/slots"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsAdminMenuOpen(false)}
+                  >
+                    时段库存管理
+                  </Link>
+                  <Link
                     to="/admin/announcements"
                     className="block px-4 py-2 text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
                     onClick={() => setIsAdminMenuOpen(false)}
@@ -144,6 +151,9 @@ export default function Navbar() {
               </Link>
               <Link to="/admin/projects" className="block py-2 text-gray-600 hover:text-primary-500">
                 项目管理
+              </Link>
+              <Link to="/admin/slots" className="block py-2 text-gray-600 hover:text-primary-500">
+                时段库存管理
               </Link>
               <Link to="/admin/announcements" className="block py-2 text-gray-600 hover:text-primary-500">
                 公告管理
